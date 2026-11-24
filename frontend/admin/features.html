@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Features Management - FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="dashboard.css">
+  <style>
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .feature-panel { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; }
+    .feature-list { margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1rem; }
+    .item { background: var(--bg-primary); padding: 1rem; border-radius: 4px; border: 1px solid var(--border); margin-bottom: 0.5rem; }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav class="admin-nav">
+    <div class="nav-inner" style="display:flex; justify-content:space-between;">
+      <a href="/admin/dashboard" class="nav-brand">
+        <span class="nav-icon"><img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="width:40px;height:40px;object-fit:contain;"></span>
+        <span>FixMyCity <span>Admin</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/admin/dashboard">List View</a>
+        <a href="/admin/map">Map View</a>
+        <a href="/admin/analytics">Analytics</a>
+        <a href="/admin/scorecards">Scorecards</a>
+        <a href="/admin/features" class="active">Manage Features</a>
+        <a href="/admin/login" onclick="Auth.logout('/admin/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container" style="padding-top:2rem;">
+    <div style="margin-bottom:1.5rem;">
+      <button onclick="window.location.href='/admin/dashboard'" class="btn btn-ghost" style="padding: 0.5rem 0;">&larr; Back to Dashboard</button>
+    </div>
+    <h2>Community Features Management</h2>
+    <p class="text-secondary mb-3">Add content to the Civic Hub, create new Community Funding projects, and deploy new Polls.</p>
+
+    <div class="features-grid">
+      
+      <!-- Civic Hub -->
+      <div class="feature-panel">
+        <h3>📚 Civic Knowledge Hub</h3>
+        <p class="text-secondary mb-3" style="font-size:0.9rem;">Publish new articles and guides.</p>
+        <div class="form-group">
+          <label>Title</label>
+          <input type="text" id="hubTitle">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="hubCategory">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="hubDesc" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Content</label>
+          <textarea id="hubContent" rows="4"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="addHub()">Publish Article</button>
+        <div class="feature-list" id="hubList"></div>
+      </div>
+
+      <!-- Funding -->
+      <div class="feature-panel">
+        <h3>💰 Community Funding</h3>
+        <p class="text-secondary mb-3" style="font-size:0.9rem;">Start crowdsourced municipal projects.</p>
+        <div class="form-group">
+          <label>Project Title</label>
+          <input type="text" id="fundTitle">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="fundDesc" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Goal Amount (₹)</label>
+          <input type="number" id="fundGoal">
+        </div>
+        <button class="btn btn-primary" onclick="addFunding()">Create Project</button>
+        <div class="feature-list" id="fundList"></div>
+      </div>
+
+      <!-- Polls -->
+      <div class="feature-panel">
+        <h3>📊 Polls & Surveys</h3>
+        <p class="text-secondary mb-3" style="font-size:0.9rem;">Gather citizen feedback.</p>
+        <div class="form-group">
+          <label>Poll Title</label>
+          <input type="text" id="pollTitle">
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="pollDesc" rows="2"></textarea>
+        </div>
+        <div class="form-group" id="pollOptions">
+          <label>Options (Comma separated)</label>
+          <input type="text" id="pollOpts" placeholder="Yes, No, Maybe">
+        </div>
+        <button class="btn btn-primary" onclick="addPoll()">Deploy Poll</button>
+        <div class="feature-list" id="pollList"></div>
+      </div>
+
+    </div>
+  </div>
+
+    <script>
+    Auth.requireAuth("admin");
+
+    async function loadData() {
+      const headers = Auth.getAuthHeaders();
+      try {
+        const [hubRes, fundRes, pollRes] = await Promise.all([
+          fetch("/api/features/hub", { headers }),
+          fetch("/api/features/funding", { headers }),
+          fetch("/api/features/polls", { headers })
+        ]);
+        
+        const hub = await hubRes.json();
+        const fund = await fundRes.json();
+        const poll = await pollRes.json();
+
+        renderHubs(hub.articles || []);
+        renderFunds(fund.projects || []);
+        renderPolls(poll.polls || []);
+      } catch (err) {
+        console.error("Failed to load features data", err);
+      }
+    }
+
+    function renderHubs(items) {
+      document.getElementById('hubList').innerHTML = items.map(i => `<div class="item"><strong>${i.title}</strong><br><small>${i.category}</small></div>`).join('');
+    }
+    function renderFunds(items) {
+      document.getElementById('fundList').innerHTML = items.map(i => `<div class="item"><strong>${i.title}</strong><br><small>Raised: ₹${i.raised} / Goal: ₹${i.goal}</small></div>`).join('');
+    }
+    function renderPolls(items) {
+      document.getElementById('pollList').innerHTML = items.map(i => {
+        const opts = i.options.map(o => `${o.text}: ${o.votes}`).join(' | ');
+        return `<div class="item"><strong>${i.title}</strong><br><small>${opts}</small></div>`;
+      }).join('');
+    }
+
+    async function addHub() {
+      const payload = {
+        title: document.getElementById('hubTitle').value,
+        category: document.getElementById('hubCategory').value,
+        description: document.getElementById('hubDesc').value,
+        content: document.getElementById('hubContent').value,
+      };
+      await fetch('/api/features/hub', { method: 'POST', headers: { ...Auth.getAuthHeaders(), 'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+      loadData();
+    }
+
+    async function addFunding() {
+      const payload = {
+        title: document.getElementById('fundTitle').value,
+        description: document.getElementById('fundDesc').value,
+        goal: Number(document.getElementById('fundGoal').value),
+      };
+      await fetch('/api/features/funding', { method: 'POST', headers: { ...Auth.getAuthHeaders(), 'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+      loadData();
+    }
+
+    async function addPoll() {
+      const opts = document.getElementById('pollOpts').value.split(',').map(s => ({ text: s.trim(), votes: 0 }));
+      const payload = {
+        title: document.getElementById('pollTitle').value,
+        description: document.getElementById('pollDesc').value,
+        options: opts,
+      };
+      await fetch('/api/features/polls', { method: 'POST', headers: { ...Auth.getAuthHeaders(), 'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+      loadData();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>

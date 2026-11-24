@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map View & Spatial Analysis — FixMyCity Admin</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+  <style>
+    body, html { height: 100%; overflow: hidden; margin: 0; padding: 0; }
+    #adminMap { height: calc(100vh - 64px); width: 100%; }
+    .map-sidebar {
+      position: absolute; top: 76px; right: 20px; z-index: 1000;
+      width: 360px; max-height: calc(100vh - 100px); overflow-y: auto;
+      background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.25rem; color: var(--text-primary); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+    }
+    .popup-content { color: #333; min-width: 220px; font-size: 0.85rem; line-height: 1.4; }
+    .popup-photo { width: 100%; max-height: 140px; border-radius: 6px; object-fit: cover; margin: 8px 0; border: 1px solid #e5e7eb; }
+    .analysis-card {
+      background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+      padding: 10px 12px; margin-bottom: 12px;
+    }
+    .status-meter-row {
+      display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;
+    }
+    .meter-bar-wrap {
+      background: #e2e8f0; height: 6px; border-radius: 9999px; overflow: hidden; margin-bottom: 8px;
+    }
+    .meter-fill { height: 100%; border-radius: 9999px; transition: width 0.3s; }
+    .zone-badge {
+      display: inline-flex; align-items: center; justify-content: space-between;
+      width: 100%; font-size: 0.8rem; padding: 4px 8px; background: #fff;
+      border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 4px;
+    }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/admin/dashboard" class="nav-brand">
+        <span class="nav-icon">
+          <img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="width:40px;height:40px;object-fit:contain;border-radius:4px;">
+        </span>
+        <span>FixMyCity <span>Admin</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/admin/dashboard">List View</a>
+        <a href="/admin/map" class="active">Map View</a>
+        <a href="/admin/analytics">Analytics</a>
+        <a href="/admin/scorecards">Scorecards</a>
+        <a href="/admin/features">Manage Features</a>
+        <a href="/admin/login" onclick="Auth.logout('/admin/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div id="adminMap"></div>
+
+  <div class="map-sidebar">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="margin:0; font-size:1.1rem; color:var(--accent);">🗺️ Spatial Analytics</h3>
+      <button onclick="resetToBengaluru()" class="btn btn-secondary" style="font-size:0.75rem; padding:4px 8px;" title="Reset Map Center">Bengaluru</button>
+    </div>
+
+    <!-- Map Filters -->
+    <div class="form-group mb-2">
+      <label class="form-label text-xs">Filter Category</label>
+      <select id="mapCat" class="form-control" onchange="loadMapData()" style="padding:6px 10px; font-size:0.85rem;">
+        <option value="">All Categories</option>
+        <option value="Road & Infrastructure Department">Road & Infrastructure</option>
+        <option value="Water Supply Department">Water Supply</option>
+        <option value="Electricity Department">Electricity</option>
+        <option value="Sanitation & Waste Management">Sanitation & Waste</option>
+        <option value="Public Health Department">Public Health</option>
+        <option value="Transport Department">Transport</option>
+      </select>
+    </div>
+    <div class="form-group mb-3">
+      <label class="form-label text-xs">Filter Status</label>
+      <select id="mapStatus" class="form-control" onchange="loadMapData()" style="padding:6px 10px; font-size:0.85rem;">
+        <option value="">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+    </div>
+
+    <!-- Spatial Analysis Metrics -->
+    <div class="analysis-card">
+      <div style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px;">
+        Grievance Breakdown
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:10px;">
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 8px; text-align:center;">
+          <div style="font-size:0.7rem; color:var(--text-secondary);">Visible on Map</div>
+          <div id="statMapTotal" style="font-size:1.2rem; font-weight:800; color:var(--accent);">0</div>
+        </div>
+        <div style="background:#fff; border:1px solid #e2e8f0; border-radius:6px; padding:6px 8px; text-align:center;">
+          <div style="font-size:0.7rem; color:#f59e0b;">Pending Action</div>
+          <div id="statMapPending" style="font-size:1.2rem; font-weight:800; color:#f59e0b;">0</div>
+        </div>
+      </div>
+
+      <!-- Progress Meters -->
+      <div class="status-meter-row">
+        <span>In Progress</span>
+        <b id="pctInProgress">0%</b>
+      </div>
+      <div class="meter-bar-wrap">
+        <div id="barInProgress" class="meter-fill" style="background:#3b82f6; width:0%;"></div>
+      </div>
+
+      <div class="status-meter-row">
+        <span>Resolved</span>
+        <b id="pctResolved">0%</b>
+      </div>
+      <div class="meter-bar-wrap">
+        <div id="barResolved" class="meter-fill" style="background:#10b981; width:0%;"></div>
+      </div>
+    </div>
+
+    <!-- Ward / Zone Density Analysis -->
+    <div class="analysis-card">
+      <div style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:8px;">
+        Zone Density & Hotspots
+      </div>
+      <div id="zoneList">
+        <div class="text-xs text-secondary">Loading zone breakdown...</div>
+      </div>
+    </div>
+
+    <!-- Top Affected Department -->
+    <div class="analysis-card" style="margin-bottom:0;">
+      <div style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:4px;">
+        Top Incident Category
+      </div>
+      <div id="topCategoryText" style="font-size:0.9rem; font-weight:700; color:var(--text-primary);">
+        Analyzing...
+      </div>
+    </div>
+  </div>
+
+    <script src="/shared/escape.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+  <script>
+    Auth.requireAuth('admin');
+
+    const BENGALURU_COORDS = [12.9716, 77.5946];
+    let map, markers;
+
+    const STATUS_COLORS = {
+      'Pending': '#f59e0b',
+      'In Progress': '#3b82f6',
+      'Resolved': '#10b981',
+      'Rejected': '#ef4444'
+    };
+
+    function initMap() {
+      // Always center on Bengaluru
+      map = L.map('adminMap').setView(BENGALURU_COORDS, 12);
+
+      try {
+        L.maplibreGL({
+          style: 'https://tiles.openfreemap.org/styles/liberty'
+        }).addTo(map);
+      } catch (e) {
+        // Fallback to OSM CartoDB Raster tiles
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+        }).addTo(map);
+      }
+
+      // Add tile fallback on error
+      setTimeout(() => {
+        if (!map._layers || Object.keys(map._layers).length <= 1) {
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+          }).addTo(map);
+        }
+      }, 1000);
+
+      markers = L.markerClusterGroup({
+        maxClusterRadius: 40,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false
+      });
+      map.addLayer(markers);
+
+      loadMapData();
+    }
+
+    function resetToBengaluru() {
+      if (map) {
+        map.setView(BENGALURU_COORDS, 12, { animate: true });
+      }
+    }
+
+    async function loadMapData() {
+      const cat = document.getElementById('mapCat').value;
+      const status = document.getElementById('mapStatus').value;
+      
+      try {
+        let url = `/api/complaints/all?`;
+        if (status) url += `status=${encodeURIComponent(status)}&`;
+        if (cat) url += `category=${encodeURIComponent(cat)}`;
+
+        const res = await fetch(url, {
+          headers: Auth.getAuthHeaders()
+        });
+        const data = await res.json();
+        const complaints = data.complaints || [];
+        renderMarkers(complaints);
+        updateSpatialAnalysis(complaints);
+      } catch (err) {
+        console.error('Error loading map data:', err);
+      }
+    }
+
+    function createColoredIcon(status) {
+      const color = STATUS_COLORS[status] || '#3b82f6';
+      return L.divIcon({
+        className: 'custom-map-pin',
+        html: `<div style="
+          background-color: ${color};
+          width: 24px;
+          height: 24px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+          position: relative;
+        ">
+          <div style="
+            background: white;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            position: absolute;
+            top: 6px;
+            left: 6px;
+          "></div>
+        </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 24],
+        popupAnchor: [0, -22]
+      });
+    }
+
+    function renderMarkers(complaints) {
+      markers.clearLayers();
+      const geotagged = complaints.filter(c => c.lat && c.lng && !isNaN(c.lat) && !isNaN(c.lng));
+
+      geotagged.forEach(c => {
+        const marker = L.marker([c.lat, c.lng], {
+          icon: createColoredIcon(c.status)
+        });
+        
+        const badgeColor = STATUS_COLORS[c.status] || '#666';
+        marker.bindPopup(`
+          <div class="popup-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <strong style="color:var(--accent); font-family:monospace;">${esc(c.complaint_id)}</strong>
+              <span style="background:${badgeColor}; color:white; font-size:0.7rem; padding:2px 6px; border-radius:4px; font-weight:700;">${esc(c.status)}</span>
+            </div>
+            <strong>Category:</strong> ${esc(c.category)}<br>
+            <strong>Priority:</strong> ${esc(c.priority || 'Normal')}<br>
+            <p style="margin:6px 0; font-size:12px; color:#444;">${esc(c.description ? c.description.substring(0, 110) : '')}...</p>
+            ${c.photo_url ? `<img src="${safeUrl(c.photo_url)}" class="popup-photo">` : ''}
+            <div style="margin-top:6px;">
+              <a href="/admin/dashboard?id=${escAttr(encodeURIComponent(c.complaint_id))}" style="color:var(--accent); font-weight:600; text-decoration:none;">Inspect in Dashboard &rarr;</a>
+            </div>
+          </div>
+        `);
+        markers.addLayer(marker);
+      });
+    }
+
+    function updateSpatialAnalysis(complaints) {
+      const geotagged = complaints.filter(c => c.lat && c.lng && !isNaN(c.lat) && !isNaN(c.lng));
+      const total = geotagged.length;
+
+      document.getElementById('statMapTotal').textContent = total;
+
+      const counts = { 'Pending': 0, 'In Progress': 0, 'Resolved': 0, 'Rejected': 0 };
+      const catCounts = {};
+      const zoneCounts = { 'Central': 0, 'North': 0, 'South': 0, 'East': 0, 'West': 0 };
+
+      geotagged.forEach(c => {
+        if (counts[c.status] !== undefined) counts[c.status]++;
+        
+        const cat = c.category || 'General';
+        catCounts[cat] = (catCounts[cat] || 0) + 1;
+
+        const z = c.zone || 'Central';
+        zoneCounts[z] = (zoneCounts[z] || 0) + 1;
+      });
+
+      document.getElementById('statMapPending').textContent = counts['Pending'];
+
+      const inProgressPct = total > 0 ? Math.round((counts['In Progress'] / total) * 100) : 0;
+      const resolvedPct = total > 0 ? Math.round((counts['Resolved'] / total) * 100) : 0;
+
+      document.getElementById('pctInProgress').textContent = `${inProgressPct}% (${counts['In Progress']})`;
+      document.getElementById('barInProgress').style.width = `${inProgressPct}%`;
+
+      document.getElementById('pctResolved').textContent = `${resolvedPct}% (${counts['Resolved']})`;
+      document.getElementById('barResolved').style.width = `${resolvedPct}%`;
+
+      // Top Category
+      let topCat = 'None reported';
+      let maxCatCount = 0;
+      for (const [k, v] of Object.entries(catCounts)) {
+        if (v > maxCatCount) {
+          maxCatCount = v;
+          topCat = `${k} (${v} issues)`;
+        }
+      }
+      document.getElementById('topCategoryText').textContent = topCat;
+
+      // Zones list
+      const zoneContainer = document.getElementById('zoneList');
+      const zoneEntries = Object.entries(zoneCounts);
+      zoneContainer.innerHTML = zoneEntries.map(([zName, zCount]) => `
+        <div class="zone-badge">
+          <span><b>Zone ${esc(zName)}</b></span>
+          <span style="background:${zCount > 0 ? 'var(--accent)' : '#e2e8f0'}; color:${zCount > 0 ? '#fff' : '#64748b'}; padding:2px 8px; border-radius:12px; font-weight:700; font-size:0.75rem;">
+            ${zCount} active
+          </span>
+        </div>
+      `).join('');
+    }
+
+    initMap();
+  </script>
+</body>
+</html>

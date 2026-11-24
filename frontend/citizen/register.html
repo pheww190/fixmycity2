@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Registration | FixMyCity Official</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+  <div class="gov-banner">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India">
+    <span>GOVERNMENT OF INDIA | MUNICIPAL ADMINISTRATION DEPARTMENT</span>
+  </div>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <img src="/pho/logo.jpeg" alt="Logo">
+        <span>FixMyCity</span>
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/citizen/login">Login </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="login-page">
+    <div class="login-container">
+      <div class="login-header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Seal" style="height: 60px;">
+        <h2>Aadhaar Registration</h2>
+        <p>Link your Aadhaar to access municipal services</p>
+      </div>
+
+      <form id="registerForm" class="login-form">
+        <div class="form-group">
+          <label class="form-label">Full Name (As per Aadhaar)</label>
+          <input type="text" id="name" class="form-control" placeholder="Enter Full Name" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Aadhaar Number (12 Digits)</label>
+          <input type="text" id="aadhaar" class="form-control" placeholder="0000 0000 0000" maxlength="14" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <div class="phone-input-wrapper">
+            <div class="phone-prefix">
+              <img src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" alt="India">
+              <span>+91</span>
+            </div>
+            <input type="tel" id="phone" class="form-control phone-input" placeholder="XXXXX XXXXX" maxlength="12" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="email" class="form-control" placeholder="email@example.com" required>
+        </div>
+        <button type="submit" id="regBtn" class="btn btn-primary w-full">Register Aadhaar</button>
+      </form>
+
+      <!-- Step 2: Verification Code -->
+      <form id="verifyForm" class="login-form" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Enter 6-Digit OTP</label>
+          <input type="text" id="regOtp" class="form-control" placeholder="000000" maxlength="6" pattern="\d{6}" required>
+          <small class="form-text" style="display:block;margin-top:4px;color:var(--text-secondary,#666);">OTP sent to your email.</small>
+        </div>
+        <button type="submit" id="verifyBtn" class="btn btn-primary w-full">Verify & Complete Registration</button>
+      </form>
+
+      <div class="login-footer">
+        <p>Already registered? <a href="login.html">Login here</a></p>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <script src="/shared/auth.js"></script>
+  <script src="/shared/escape.js"></script>
+  <script src="register.js"></script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+/* index.css - Hero and Landing Page Styles */
+
+.main-content {
+  min-height: calc(100vh - 150px);
+}
+
+.hero-section {
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #003366 0%, #001A33 100%);
+  color: white;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: url("https://www.transparenttextures.com/patterns/carbon-fibre.png");
+  opacity: 0.1;
+}
+
+.hero-content {
+  max-width: 900px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.official-seal {
+  filter: brightness(0) invert(1);
+  margin-bottom: 1.5rem;
+  height: 100px;
+}
+
+.hero-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  color: var(--gov-saffron);
+}
+
+.hero-subtitle {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+}
+
+.hero-desc {
+  font-size: 1.1rem;
+  color: #D1D5DB;
+  max-width: 600px;
+  margin: 0 auto 3rem;
+}
+
+.action-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.action-card {
+  background: white;
+  padding: 2.5rem 2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  border-bottom: 4px solid var(--gov-saffron);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.action-card.admin-variant {
+  border-bottom-color: var(--gov-green);
+}
+
+.card-icon {
+  color: var(--gov-blue);
+  background: #F3F4F6;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+}
+
+.action-card h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gov-blue);
+}
+
+.action-card p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+}
+
+.btn-text {
+  font-weight: 700;
+  color: var(--gov-blue);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+}
+
+/* Stats Bar */
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 4rem;
+  padding: 3rem 2rem;
+  background: white;
+  border-bottom: 1px solid var(--border);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-num {
+  display: block;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--gov-blue);
+  font-family: 'Outfit', sans-serif;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .hero-subtitle { font-size: 1.75rem; }
+  .stats-bar { flex-direction: column; gap: 2rem; }
+}

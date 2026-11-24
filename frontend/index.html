@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FixMyCity | Official Municipal Grievance Portal</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+  <!-- Official Gov Banner -->
+  <div class="gov-banner">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India">
+    <span>GOVERNMENT OF INDIA | MUNICIPAL ADMINISTRATION DEPARTMENT</span>
+  </div>
+
+  <!-- Top Navigation -->
+  <header>
+    <nav>
+      <div class="nav-inner">
+        <a href="/" class="nav-brand">
+          <img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="border-radius: 4px;">
+          <span>FixMyCity <small style="font-size: 0.6rem; display: block; font-weight: 400; color: var(--text-secondary);">CITIZEN CENTRIC SERVICES</small></span>
+        </a>
+        <div class="nav-links">
+          <a href="/" class="active" data-i18n="home">Home</a>
+          <a href="/public-map.html" data-i18n="reports">Public Map</a>
+          <a href="/gallery.html" data-i18n="gallery">Fix Gallery</a>
+          <a href="/leaderboard.html" data-i18n="leaderboard">Smart Ward</a>
+          <div class="lang-selector" style="margin-left: 20px;">
+            <select class="form-control" style="padding: 4px 30px 4px 10px; font-size: 0.8rem; height: auto;" onchange="changeLanguage(this.value)">
+              <option value="en">English</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+              <option value="te">తెలుగు (Telugu)</option>
+              <option value="kn">ಕನ್ನಡ (Kannada)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="hero-section">
+      <div class="hero-content">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="National Emblem" class="official-seal">
+        <h1 class="hero-title" data-i18n="hero_title">Satyamev Jayate</h1>
+        <h2 class="hero-subtitle" data-i18n="hero_subtitle">Unified Municipal Grievance Redressal System</h2>
+        <p class="hero-desc" data-i18n="hero_desc">Empowering citizens to build a better city through transparent and accountable governance.</p>
+        
+        <div class="action-cards">
+          <a href="/citizen/login" class="action-card">
+            <div class="card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <h3 data-i18n="citizen_portal">Citizen Portal</h3>
+            <p data-i18n="citizen_desc">File new grievances, track status, and provide feedback on resolutions.</p>
+            <span class="btn-text" data-i18n="proceed_login">Proceed to Login →</span>
+          </a>
+
+          <a href="/admin/login" class="action-card admin-variant">
+            <div class="card-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+            </div>
+            <h3 data-i18n="officer_portal">Officer Login</h3>
+            <p data-i18n="officer_desc">For Departmental Officers and Administrators to manage assigned tasks.</p>
+            <span class="btn-text" data-i18n="official_signin">Official Sign In →</span>
+           </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <section class="stats-bar">
+      <div class="stat-item">
+        <span class="stat-num" id="totalComplaints">1,250+</span>
+        <span class="stat-label" data-i18n="total_grievances">Total Grievances</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="resolvedComplaints">98%</span>
+        <span class="stat-label" data-i18n="resolution_rate">Resolution Rate</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num" id="avgResponseTime">48 Hrs</span>
+        <span class="stat-label" data-i18n="avg_response">Avg. Response Time</span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>
+        <h4>About FixMyCity</h4>
+        <p style="font-size: 0.9rem; color: #9CA3AF; margin-top: 10px;">FixMyCity is an AI-powered platform designed to streamline municipal service delivery and ensure every citizen's voice is heard.</p>
+      </div>
+      <div>
+        <h4>Quick Links</h4>
+        <ul style="list-style: none; margin-top: 10px; font-size: 0.9rem;">
+          <li><a href="/public-map.html" style="color: #9CA3AF; text-decoration: none;" data-i18n="reports">Public Reports Map</a></li>
+          <li><a href="/leaderboard.html" style="color: #9CA3AF; text-decoration: none;" data-i18n="leaderboard">Ward Performance</a></li>
+          <li><a href="/gallery.html" style="color: #9CA3AF; text-decoration: none;" data-i18n="gallery">Success Stories</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Support & Help</h4>
+        <ul style="list-style: none; margin-top: 10px; font-size: 0.9rem;">
+          <li><a href="/help.html" style="color: #9CA3AF; text-decoration: none;">Help Center & FAQ</a></li>
+          <li><a href="/privacy.html" style="color: #9CA3AF; text-decoration: none;">Privacy Policy</a></li>
+          <li><a href="/terms.html" style="color: #9CA3AF; text-decoration: none;">Citizen Charter & Terms</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Technical & Grievance Cell</h4>
+        <div style="margin-top: 10px; font-size: 0.85rem; color: #9CA3AF; line-height: 1.6;">
+          <p><strong style="color: #fff;">24/7 Helpline:</strong> 1800-425-0033 (Toll Free)</p>
+          <p><strong style="color: #fff;">Control Room:</strong> +91 (080) 2266-0000</p>
+          <p><strong style="color: #fff;">Citizen Support:</strong> support@fixmycity.gov.in</p>
+          <p><strong style="color: #fff;">Technical Desk:</strong> egov-support@bbmp.gov.in</p>
+          <p style="font-size: 0.75rem; color: #6B7280; margin-top: 4px;">Directorate of Municipal E-Governance, Corporation Building, Hudson Circle, Bengaluru - 560002</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Municipal Administration Department. All Rights Reserved.</p>
+      <p style="margin-top: 5px;">Designed & Developed by Digital Governance Cell | Government of Karnataka.</p>
+    </div>
+  </footer>
+
+  <link rel="stylesheet" href="/shared/chatbot.css">
+  <script src="/shared/chatbot.js"></script>
+  <script src="/shared/i18n.js"></script>
+  <script>
+    function changeLanguage(lang) {
+      localStorage.setItem('mg_lang', lang);
+      if (window.applyTranslations) window.applyTranslations();
+    }
+    // Set initial select value
+    document.querySelector('select').value = localStorage.getItem('mg_lang') || 'en';
+
+    async function loadRealStats() {
+      try {
+        const response = await fetch('/api/features/transparency');
+        const data = await response.json();
+        if (data.success && data.stats) {
+          const stats = data.stats;
+          const total = stats.total || 0;
+          const resolved = (stats.byStatus && stats.byStatus.Resolved) || 0;
+          const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 100;
+          const avgHours = stats.avgResolutionDays ? Math.round(parseFloat(stats.avgResolutionDays) * 24) : 0;
+
+          document.getElementById('totalComplaints').textContent = total;
+          document.getElementById('resolvedComplaints').textContent = `${resolutionRate}%`;
+          document.getElementById('avgResponseTime').textContent = `${avgHours} Hrs`;
+        }
+      } catch (err) {
+        console.error('Error fetching stats:', err);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', loadRealStats);
+  </script>
+
+</body>
+</html>

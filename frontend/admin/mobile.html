@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Officer Mobile View — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { background: var(--bg-primary); }
+    .mobile-wrap { max-width: 480px; margin: 0 auto; padding: 1rem; }
+    .mob-header { background: linear-gradient(135deg,#1e3a8a,#3b82f6); color:#fff; border-radius:12px; padding:1.25rem; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center; }
+    .mob-header h1 { margin:0; font-size:1.1rem; }
+    .mob-tabs { display:flex; background:var(--bg-secondary); border-radius:8px; padding:.25rem; gap:.25rem; margin-bottom:1rem; }
+    .mob-tab { flex:1; text-align:center; padding:.6rem; border-radius:6px; cursor:pointer; font-size:.85rem; font-weight:600; color:var(--text-secondary); }
+    .mob-tab.active { background:var(--accent); color:#fff; }
+    .mob-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:1rem; margin-bottom:.75rem; }
+    .mob-card-id { font-size:.75rem; color:var(--text-secondary); font-family:monospace; }
+    .mob-card-desc { margin:.5rem 0; font-size:.9rem; line-height:1.4; }
+    .mob-card-meta { display:flex; gap:.5rem; flex-wrap:wrap; font-size:.75rem; }
+    .chip { padding:.2rem .6rem; border-radius:9999px; font-weight:600; }
+    .chip-pending { background:#fef3c7; color:#92400e; }
+    .chip-progress { background:#dbeafe; color:#1e40af; }
+    .chip-resolved { background:#d1fae5; color:#065f46; }
+    .chip-emergency { background:#fee2e2; color:#991b1b; }
+    .mob-actions { display:flex; gap:.5rem; margin-top:.75rem; }
+    .mob-actions button { flex:1; padding:.6rem; font-size:.8rem; border-radius:6px; border:none; cursor:pointer; font-weight:600; }
+    .btn-resolve { background:#10b981; color:#fff; }
+    .btn-progress { background:#3b82f6; color:#fff; }
+    .filter-row { display:flex; gap:.5rem; margin-bottom:.75rem; }
+    .filter-row select { flex:1; padding:.5rem; border-radius:6px; border:1px solid var(--border); font-size:.85rem; background:var(--bg-secondary); color:var(--text-primary); }
+  </style>
+</head>
+<body>
+  <div class="mobile-wrap">
+    <div class="mob-header">
+      <div>
+        <a href="/admin/dashboard" style="color:white; font-size:0.75rem; text-decoration:none; opacity:0.9; display:inline-block; margin-bottom:4px;">&larr; Back to Admin Portal</a>
+        <div style="font-size:.75rem;opacity:.8">OFFICER FIELD VIEW</div>
+        <h1 id="officerName">Loading...</h1>
+      </div>
+      <div style="text-align:right">
+        <div id="slaCount" style="font-size:1.5rem;font-weight:800">—</div>
+        <div style="font-size:.7rem;opacity:.8">SLA Overdue</div>
+      </div>
+    </div>
+
+    <div class="mob-tabs">
+      <div class="mob-tab active" onclick="filterStatus('',this)">All</div>
+      <div class="mob-tab" onclick="filterStatus('Pending',this)">Pending</div>
+      <div class="mob-tab" onclick="filterStatus('In Progress',this)">In Progress</div>
+      <div class="mob-tab" onclick="filterStatus('Resolved',this)">Done</div>
+    </div>
+
+    <div class="filter-row">
+      <select id="filterPri" onchange="renderList()">
+        <option value="">All Priority</option>
+        <option value="Emergency">🚨 Emergency</option>
+        <option value="High">🔴 High</option>
+        <option value="Normal">Normal</option>
+      </select>
+    </div>
+
+    <div id="mobList"><div style="text-align:center;padding:2rem;color:var(--text-secondary)">Loading...</div></div>
+  </div>
+
+  <script src="/shared/auth.js"></script>
+  <script>
+    Auth.requireAuth("admin");
+    const user = Auth.getUser();
+    document.getElementById('officerName').textContent = user.name || 'Officer';
+
+    let allComplaints = [];
+    let activeStatus = '';
+
+    async function load() {
+      const [compRes, slaRes] = await Promise.all([
+        fetch('/api/complaints/all', { headers: Auth.getAuthHeaders() }),
+        fetch('/api/features/sla-breaches', { headers: Auth.getAuthHeaders() })
+      ]);
+      const comp = await compRes.json();
+      const sla = await slaRes.json();
+      allComplaints = comp.complaints || [];
+      document.getElementById('slaCount').textContent = sla.count || 0;
+      renderList();
+    }
+
+    function filterStatus(status, el) {
+      activeStatus = status;
+      document.querySelectorAll('.mob-tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      renderList();
+    }
+
+    function renderList() {
+      const pri = document.getElementById('filterPri').value;
+      let filtered = allComplaints;
+      if (activeStatus) filtered = filtered.filter(c => c.status === activeStatus);
+      if (pri) filtered = filtered.filter(c => c.priority === pri);
+
+      const list = document.getElementById('mobList');
+      if (!filtered.length) { list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-secondary)">No complaints found.</div>'; return; }
+
+      list.innerHTML = filtered.slice(0,30).map(c => {
+        const chipClass = c.priority === 'Emergency' ? 'chip-emergency' : (c.status === 'Resolved' ? 'chip-resolved' : c.status === 'In Progress' ? 'chip-progress' : 'chip-pending');
+        const overdue = c.deadline && new Date(c.deadline) < new Date() && !['Resolved','Rejected'].includes(c.status);
+        return `<div class="mob-card" style="${overdue ? 'border-color:#ef4444' : ''}">
+          <div class="mob-card-id">${c.complaint_id} ${overdue ? '⚠️ OVERDUE' : ''}</div>
+          <div class="mob-card-desc">${(c.description||'').substring(0,100)}...</div>
+          <div class="mob-card-meta">
+            <span class="chip ${chipClass}">${c.status}</span>
+            <span class="chip" style="background:var(--bg-primary)">${c.priority}</span>
+            <span class="chip" style="background:var(--bg-primary)">${(c.category||'').split(' ')[0]}</span>
+          </div>
+          ${!['Resolved','Rejected'].includes(c.status) ? `
+          <div class="mob-actions">
+            ${c.status === 'Pending' ? `<button class="btn-progress" onclick="updateStatus('${c.complaint_id}','In Progress')">▶ Start Progress</button>` : ''}
+            ${c.status === 'In Progress' ? `<button class="btn-resolve" onclick="updateStatus('${c.complaint_id}','Resolved')">✓ Mark Resolved</button>` : ''}
+          </div>` : ''}
+        </div>`;
+      }).join('');
+    }
+
+    async function updateStatus(id, status) {
+      if (!confirm(`Mark ${id} as "${status}"?`)) return;
+      try {
+        const res = await fetch(`/api/complaints/${id}/status`, {
+          method: 'PATCH',
+          headers: { ...Auth.getAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) { alert('Updated!'); load(); }
+        else alert(data.error || 'Failed to update.');
+      } catch (err) {
+        alert(err.message || 'Failed to update.');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

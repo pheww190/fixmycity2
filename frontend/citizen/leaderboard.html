@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Leaderboard — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .lb-container { max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+    .lb-hero { background: linear-gradient(135deg,#1e3a8a,#3b82f6); color:#fff; border-radius:12px; padding:2rem; text-align:center; margin-bottom:2rem; }
+    .lb-hero h1 { margin:0; font-size:2rem; }
+    .lb-hero p { opacity:.85; margin:.5rem 0 0; }
+    .stat-row { display:flex; gap:1rem; justify-content:center; margin-top:1.5rem; flex-wrap:wrap; }
+    .stat-chip { background:rgba(255,255,255,.15); border-radius:8px; padding:.75rem 1.5rem; text-align:center; }
+    .stat-chip .num { font-size:1.8rem; font-weight:800; }
+    .stat-chip .lbl { font-size:.75rem; opacity:.8; }
+    .lb-table { width:100%; border-collapse:collapse; }
+    .lb-table th { background:var(--bg-secondary); padding:.75rem 1rem; text-align:left; color:var(--text-secondary); font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; }
+    .lb-table td { padding:1rem; border-bottom:1px solid var(--border); }
+    .lb-table tr:hover td { background:var(--bg-secondary); }
+    .rank-num { font-size:1.3rem; font-weight:800; width:50px; }
+    .badge-chip { display:inline-block; padding:.2rem .7rem; border-radius:9999px; font-size:.75rem; background:rgba(59,130,246,.15); color:var(--accent); font-weight:600; }
+    .progress-mini { height:6px; background:var(--border); border-radius:9999px; overflow:hidden; margin-top:.4rem; }
+    .progress-mini-fill { height:100%; background:var(--accent); border-radius:9999px; }
+    .my-card { background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(59,130,246,.1)); border:1px solid var(--accent); border-radius:10px; padding:1.5rem; margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/citizen/portal" class="nav-brand">
+        <span class="nav-icon"><img src="/pho/logo.jpeg" style="width:40px;height:40px;object-fit:contain;"></span>
+        <span>FixMyCity</span>
+      </a>
+      <div class="nav-links">
+        <a href="/citizen/portal">File Complaint</a>
+        <a href="/citizen/my-complaints">My History</a>
+        <a href="/citizen/feed">Feed</a>
+        <a href="/citizen/community">Community</a>
+        <a href="/citizen/leaderboard" class="active">Leaderboard</a>
+        <a href="/citizen/login" onclick="Auth.logout('/citizen/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="lb-container">
+    <button onclick="window.location.href='/citizen/portal'" class="btn btn-ghost" style="margin-bottom:1rem; padding:.5rem 0;">&larr; Back to Portal</button>
+
+    <div class="lb-hero">
+      <h1>🏆 Citizen Leaderboard</h1>
+      <p>Top contributors making the city a better place, one report at a time.</p>
+      <div class="stat-row">
+        <div class="stat-chip"><div class="num" id="heroTotal">—</div><div class="lbl">Total Citizens</div></div>
+        <div class="stat-chip"><div class="num" id="heroPoints">—</div><div class="lbl">Points Awarded</div></div>
+      </div>
+    </div>
+
+    <div class="my-card" id="myCard" style="display:none">
+      <div>
+        <div style="font-size:.85rem; color:var(--text-secondary)">Your Standing</div>
+        <div style="font-size:1.4rem; font-weight:800;" id="myName">—</div>
+        <div id="myBadge" class="badge-chip" style="margin-top:.3rem">—</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:2rem; font-weight:800; color:var(--accent)"><span id="myPoints">0</span> pts</div>
+        <div style="font-size:.85rem; color:var(--text-secondary)">🔥 <span id="myStreak">0</span> day streak</div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0; overflow:hidden;">
+      <table class="lb-table">
+        <thead>
+          <tr>
+            <th style="width:60px">Rank</th>
+            <th>Citizen</th>
+            <th>Badge</th>
+            <th>Points</th>
+            <th>Streak</th>
+          </tr>
+        </thead>
+        <tbody id="lbBody">
+          <tr><td colspan="5" class="text-center text-secondary p-3">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top:1.5rem; background:var(--bg-secondary); border-radius:10px; padding:1.5rem; border:1px solid var(--border);">
+      <h3 style="margin:0 0 .5rem">How to earn points?</h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:.75rem; margin-top:1rem;">
+        <div style="text-align:center; padding:.75rem; background:var(--bg-primary); border-radius:8px;">📝<br><strong>+20 pts</strong><br><small>File a complaint</small></div>
+        <div style="text-align:center; padding:.75rem; background:var(--bg-primary); border-radius:8px;">🤝<br><strong>+10 pts</strong><br><small>Contribute funds</small></div>
+        <div style="text-align:center; padding:.75rem; background:var(--bg-primary); border-radius:8px;">📣<br><strong>+15 pts</strong><br><small>Start a petition</small></div>
+        <div style="text-align:center; padding:.75rem; background:var(--bg-primary); border-radius:8px;">🙋<br><strong>+20 pts</strong><br><small>Volunteer sign-up</small></div>
+        <div style="text-align:center; padding:.75rem; background:var(--bg-primary); border-radius:8px;">💬<br><strong>+5 pts</strong><br><small>Post on Feed</small></div>
+        <div style="text-align:center; padding:.75rem; background:var(--bg-primary); border-radius:8px;">🗳️<br><strong>+5 pts</strong><br><small>Vote in polls</small></div>
+      </div>
+    </div>
+  </div>
+
+    <script>
+    Auth.requireAuth("citizen");
+    const me = Auth.getUser();
+
+    async function load() {
+      const [lbRes, myRes] = await Promise.all([
+        fetch('/api/features/leaderboard'),
+        fetch('/api/features/my-stats', { headers: Auth.getAuthHeaders() })
+      ]);
+      const { board } = await lbRes.json();
+      const { stats } = await myRes.json();
+
+      const medals = ['🥇','🥈','🥉'];
+      const totalPts = board.reduce((s,r) => s + r.points, 0);
+      document.getElementById('heroTotal').textContent = board.length;
+      document.getElementById('heroPoints').textContent = totalPts;
+
+      const tbody = document.getElementById('lbBody');
+      tbody.innerHTML = board.length === 0
+        ? '<tr><td colspan="5" class="text-center text-secondary p-3">No data yet. Be the first!</td></tr>'
+        : board.map((r, i) => {
+            const maxPts = board[0].points || 1;
+            return `<tr>
+              <td class="rank-num">${medals[i] || (i+1)}</td>
+              <td><strong>${r.name}</strong></td>
+              <td><span class="badge-chip">${r.badge}</span></td>
+              <td>
+                <strong>${r.points}</strong>
+                <div class="progress-mini"><div class="progress-mini-fill" style="width:${Math.round(r.points/maxPts*100)}%"></div></div>
+              </td>
+              <td>🔥 ${r.streak}d</td>
+            </tr>`;
+          }).join('');
+
+      if (stats) {
+        document.getElementById('myCard').style.display = 'flex';
+        document.getElementById('myName').textContent = stats.name;
+        document.getElementById('myBadge').textContent = stats.badge;
+        document.getElementById('myPoints').textContent = stats.points;
+        document.getElementById('myStreak').textContent = stats.streak;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

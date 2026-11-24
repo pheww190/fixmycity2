@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Community — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .com-container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .tabs { display:flex; gap:.5rem; margin-bottom:2rem; border-bottom:2px solid var(--border); }
+    .tab { padding:.75rem 1.5rem; cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; font-weight:600; color:var(--text-secondary); }
+    .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+    .petition-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin-bottom:1rem; }
+    .sig-bar-wrap { background:var(--bg-primary); border-radius:9999px; height:8px; overflow:hidden; margin:.5rem 0; }
+    .sig-bar { height:100%; background:var(--accent); border-radius:9999px; }
+    .badge-verified { background:rgba(16,185,129,.15); color:#10b981; font-size:.7rem; padding:.2rem .6rem; border-radius:9999px; font-weight:700; }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/citizen/portal" class="nav-brand">
+        <span class="nav-icon"><img src="/pho/logo.jpeg" style="width:40px;height:40px;object-fit:contain;"></span>
+        <span>FixMyCity</span>
+      </a>
+      <div class="nav-links">
+        <a href="/citizen/portal">File Complaint</a>
+        <a href="/citizen/my-complaints">My History</a>
+        <a href="/citizen/feed">Feed</a>
+        <a href="/citizen/community" class="active">Community</a>
+        <a href="/citizen/leaderboard">Leaderboard</a>
+        <a href="/citizen/login" onclick="Auth.logout('/citizen/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+  <div class="com-container">
+    <button onclick="history.back()" class="btn btn-ghost" style="margin-bottom:1rem; padding:.5rem 0;">&larr; Back</button>
+    <h1>Community Hub</h1>
+    <p class="text-secondary mb-3">Sign petitions, volunteer for civic programs, and earn your <span class="badge-verified">✓ Verified Resident</span> badge.</p>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('petitions',this)">📣 Petitions</div>
+      <div class="tab" onclick="switchTab('volunteer',this)">🙋 Volunteer</div>
+    </div>
+    <div id="tab-petitions">
+      <button class="btn btn-primary" style="margin-bottom:1.5rem" onclick="toggleForm('petitionForm')">+ Start a New Petition</button>
+      <div id="petitionForm" style="display:none; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin-bottom:1.5rem;">
+        <h3 class="mb-3">New Petition</h3>
+        <div class="form-group"><label class="form-label">Title</label><input id="petTitle" class="form-control" placeholder="e.g. Fix broken streetlights on Ring Road"></div>
+        <div class="form-group"><label class="form-label">Description</label><textarea id="petDesc" class="form-control" rows="3"></textarea></div>
+        <div class="form-group"><label class="form-label">Signature Target</label><input id="petTarget" class="form-control" type="number" value="100"></div>
+        <button class="btn btn-primary" onclick="createPetition()">Submit Petition</button>
+        <button class="btn btn-ghost" onclick="toggleForm('petitionForm')" style="margin-left:.5rem">Cancel</button>
+      </div>
+      <div id="petitionList"><div class="text-center text-secondary p-3">Loading...</div></div>
+    </div>
+    <div id="tab-volunteer" style="display:none">
+      <div class="card mb-3">
+        <h3 class="mb-3">Register as a Volunteer</h3>
+        <p class="text-secondary mb-3">Earn 20 pts and a <span class="badge-verified">✓ Verified Resident</span> badge.</p>
+        <div class="form-group"><label class="form-label">Phone Number</label><input id="volPhone" class="form-control" placeholder="10-digit mobile"></div>
+        <div class="form-group"><label class="form-label">Skill</label>
+          <select id="volSkill" class="form-control">
+            <option>Community Clean-up</option><option>Tree Plantation</option>
+            <option>Awareness Campaign</option><option>Medical Aid</option>
+            <option>Infrastructure Repair Assistance</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="registerVol()">Register (+20 pts)</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast"></div>
+    <script>
+    Auth.requireAuth("citizen");
+    function switchTab(name, el) {
+      document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display='none');
+      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('active'); t.setAttribute('aria-selected', 'false'); });
+      document.getElementById('tab-'+name).style.display = 'block';
+      el.classList.add('active');
+    }
+    function toggleForm(id) { const el=document.getElementById(id); el.style.display=el.style.display==='none'?'block':'none'; }
+    async function loadPetitions() {
+      const res = await fetch('/api/features/petitions', { headers: Auth.getAuthHeaders() });
+      const { petitions } = await res.json();
+      const list = document.getElementById('petitionList');
+      if (!petitions?.length) { list.innerHTML='<div class="text-center text-secondary p-3">No petitions yet.</div>'; return; }
+      list.innerHTML = petitions.map(p => {
+        const pct = Math.min(100, Math.round((p.signatures.length/p.target)*100));
+        return `<div class="petition-card">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:.5rem">
+            <div><h3 style="margin:0">${p.title}</h3><small class="text-secondary">by ${p.created_by_name}</small></div>
+            <button class="btn btn-primary" onclick="sign('${p.id}')">✍️ Sign (${p.signatures.length}/${p.target})</button>
+          </div>
+          <p class="text-secondary" style="margin:.75rem 0">${p.description}</p>
+          <div class="sig-bar-wrap"><div class="sig-bar" style="width:${pct}%"></div></div>
+          <small>${pct}% of target reached</small>
+        </div>`;
+      }).join('');
+    }
+    async function createPetition() {
+      const payload = { title:document.getElementById('petTitle').value, description:document.getElementById('petDesc').value, target:Number(document.getElementById('petTarget').value) };
+      if (!payload.title) return alert('Title required');
+      await fetch('/api/features/petitions', { method:'POST', headers:{...Auth.getAuthHeaders(),'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+      toggleForm('petitionForm'); showToast('Petition created! +15 pts','success'); loadPetitions();
+    }
+    async function sign(id) {
+      const res = await fetch(`/api/features/petitions/${id}/sign`, { method:'POST', headers: Auth.getAuthHeaders() });
+      const data = await res.json();
+      if (data.success) { showToast(`Signed! ${data.count} signatures. +5 pts`,'success'); loadPetitions(); }
+      else showToast(data.error,'error');
+    }
+    async function registerVol() {
+      const payload = { phone:document.getElementById('volPhone').value, skill:document.getElementById('volSkill').value };
+      const res = await fetch('/api/features/volunteer', { method:'POST', headers:{...Auth.getAuthHeaders(),'Content-Type':'application/json'}, body:JSON.stringify(payload) });
+      if (res.ok) showToast('Registered as volunteer! +20 pts 🎉','success'); else showToast('Failed','error');
+    }
+    function showToast(msg,type='success') { const t=document.getElementById('toast'); t.className=`toast-${type} show`; t.innerHTML=msg; setTimeout(()=>t.classList.remove('show'),3000); }
+    document.addEventListener('DOMContentLoaded', loadPetitions);
+  </script>
+</body>
+</html>

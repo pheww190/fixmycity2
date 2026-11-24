@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neighborhood Feed — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .feed-container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .post-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+    .post-header { display: flex; justify-content: space-between; margin-bottom: 1rem; }
+    .post-author { font-weight: bold; color: var(--accent); }
+    .post-date { color: var(--text-secondary); font-size: 0.9rem; }
+    .post-body { margin-bottom: 1rem; line-height: 1.6; }
+    .post-actions { display: flex; gap: 1rem; }
+    .action-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+    .action-btn:hover { color: var(--accent); }
+    .new-post-box { margin-bottom: 2rem; background: var(--bg-secondary); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border); }
+    .new-post-box textarea { width: 100%; height: 80px; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 1rem; resize: vertical; }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/citizen/portal" class="nav-brand">
+<span class="nav-icon">
+  <img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="width:40px;height:40px;object-fit:contain;">
+</span>        <span><span>FixMyCity</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/citizen/portal">File Complaint</a>
+        <a href="/citizen/my-complaints">My History</a>
+        <a href="/citizen/feed" class="active">Neighborhood Feed</a>
+        <a href="/citizen/hub">Civic Hub</a>
+        <a href="/citizen/funding">Community Funding</a>
+        <a href="/citizen/polls">Polls</a>
+        <a href="/citizen/login" onclick="Auth.logout('/citizen/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="feed-container">
+    <button onclick="window.location.href='/citizen/portal'" class="btn btn-ghost" style="margin-bottom: 1rem; padding: 0.5rem 0;">&larr; Back to Portal</button>
+    <div class="mb-3">
+      <h1>Neighborhood Feed</h1>
+      <p class="text-secondary">Stay updated with community discussions and local alerts.</p>
+    </div>
+
+    <div class="new-post-box">
+      <textarea id="postContent" placeholder="Share an update or ask a question to your neighbors..."></textarea>
+      <div style="display: flex; justify-content: flex-end;">
+        <button class="btn btn-primary" onclick="submitPost()">Post to Neighborhood</button>
+      </div>
+    </div>
+
+    <div id="feedList">
+      <!-- Posts will be loaded here -->
+      <div class="text-center p-3 text-secondary">Loading feed...</div>
+    </div>
+  </div>
+
+    <script>
+    Auth.requireAuth("citizen");
+
+    async function loadFeed() {
+      try {
+        const res = await fetch("/api/features/feed", { headers: Auth.getAuthHeaders() });
+        const data = await res.json();
+        renderPosts(data.posts || []);
+      } catch (err) {
+        document.getElementById('feedList').innerHTML = '<div class="text-center p-3 text-secondary">Error loading feed.</div>';
+      }
+    }
+
+    function renderPosts(posts) {
+      const feedList = document.getElementById('feedList');
+      feedList.innerHTML = '';
+      if (posts.length === 0) {
+        feedList.innerHTML = '<div class="text-center p-3 text-secondary">No posts yet. Be the first to post!</div>';
+        return;
+      }
+      
+      posts.forEach(post => {
+        const postEl = document.createElement('div');
+        postEl.className = 'post-card';
+        
+        let commentsHtml = (post.comments || []).map(c => `
+          <div style="background:var(--bg-primary); padding:0.8rem; margin-top:0.5rem; border-radius:4px;">
+            <strong style="color:var(--text-primary);">${c.author_name}</strong>
+            <p style="margin-top:0.3rem; color:var(--text-secondary);">${c.content}</p>
+          </div>
+        `).join('');
+
+        postEl.innerHTML = `
+          <div class="post-header">
+            <span class="post-author">${post.author_name}</span>
+            <span class="post-date">${new Date(post.created_at).toLocaleString()}</span>
+          </div>
+          <div class="post-body">${post.content}</div>
+          <div class="post-actions" style="margin-bottom: 1rem;">
+            <button class="action-btn" onclick="likePost('${post.id}')">👍 <span id="like-${post.id}">${post.likes || 0}</span> Likes</button>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
+            ${commentsHtml}
+            <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+              <input type="text" id="comment-input-${post.id}" placeholder="Write a comment..." class="form-control" style="flex-grow:1; padding:0.5rem;">
+              <button class="btn btn-secondary" onclick="addComment('${post.id}')">Reply</button>
+            </div>
+          </div>
+        `;
+        feedList.appendChild(postEl);
+      });
+    }
+
+    async function submitPost() {
+      const content = document.getElementById('postContent').value;
+      if (!content.trim()) return alert("Post cannot be empty.");
+      
+      await fetch("/api/features/feed", {
+        method: "POST",
+        headers: { ...Auth.getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ content })
+      });
+      document.getElementById('postContent').value = '';
+      loadFeed();
+    }
+
+    async function addComment(postId) {
+      const input = document.getElementById(`comment-input-${postId}`);
+      if (!input.value.trim()) return;
+      
+      await fetch(`/api/features/feed/${postId}/comment`, {
+        method: "POST",
+        headers: { ...Auth.getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ content: input.value })
+      });
+      loadFeed();
+    }
+
+    async function likePost(postId) {
+      await fetch(`/api/features/feed/${postId}/like`, { method: "POST", headers: Auth.getAuthHeaders() });
+      loadFeed();
+    }
+
+    document.addEventListener('DOMContentLoaded', loadFeed);
+  </script>
+</body>
+</html>

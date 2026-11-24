@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polls & Surveys — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .polls-container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+    .poll-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .poll-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+    .poll-desc { color: var(--text-secondary); margin-bottom: 1.5rem; }
+    
+    .poll-option { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 0.5rem; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+    .poll-option:hover { border-color: var(--accent); }
+    .poll-option input[type="radio"] { margin-right: 1rem; z-index: 2; }
+    .poll-option-text { flex-grow: 1; z-index: 2; }
+    .poll-option-percent { font-weight: bold; color: var(--text-secondary); z-index: 2; display: none; }
+    
+    .poll-bg-fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(59, 130, 246, 0.1); width: 0%; z-index: 1; transition: width 0.5s ease-out; }
+    
+    .poll-actions { margin-top: 1.5rem; text-align: right; }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/citizen/portal" class="nav-brand">
+<span class="nav-icon">
+  <img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="width:40px;height:40px;object-fit:contain;">
+</span>        <span><span>FixMyCity</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/citizen/portal">File Complaint</a>
+        <a href="/citizen/my-complaints">My History</a>
+        <a href="/citizen/feed">Neighborhood Feed</a>
+        <a href="/citizen/hub">Civic Hub</a>
+        <a href="/citizen/funding">Community Funding</a>
+        <a href="/citizen/polls" class="active">Polls</a>
+        <a href="/citizen/login" onclick="Auth.logout('/citizen/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="polls-container">
+    <button onclick="window.location.href='/citizen/portal'" class="btn btn-ghost" style="margin-bottom: 1rem; padding: 0.5rem 0;">&larr; Back to Portal</button>
+    <div class="mb-3">
+      <h1>Community Polls & Surveys</h1>
+      <p class="text-secondary">Have your say in upcoming municipal decisions and urban planning projects.</p>
+    </div>
+
+    <div class="poll-card" id="poll-1">
+      <h3 class="poll-title">New Metro Station Location</h3>
+      <p class="poll-desc">Which location do you think is best suited for the proposed Sector 14 Metro Station?</p>
+      
+      <div class="poll-options">
+        <label class="poll-option" onclick="selectOption(this)">
+          <div class="poll-bg-fill" data-percent="45%"></div>
+          <input type="radio" name="poll1" value="A">
+          <span class="poll-option-text">Near the Main Market</span>
+          <span class="poll-option-percent">45%</span>
+        </label>
+        <label class="poll-option" onclick="selectOption(this)">
+          <div class="poll-bg-fill" data-percent="30%"></div>
+          <input type="radio" name="poll1" value="B">
+          <span class="poll-option-text">Opposite the Central Park</span>
+          <span class="poll-option-percent">30%</span>
+        </label>
+        <label class="poll-option" onclick="selectOption(this)">
+          <div class="poll-bg-fill" data-percent="25%"></div>
+          <input type="radio" name="poll1" value="C">
+          <span class="poll-option-text">Adjacent to the Bus Terminal</span>
+          <span class="poll-option-percent">25%</span>
+        </label>
+      </div>
+      
+      <div class="poll-actions">
+        <button class="btn btn-primary" onclick="submitPoll('poll-1')">Vote Now</button>
+      </div>
+    </div>
+
+    <div class="poll-card" id="poll-2">
+      <h3 class="poll-title">Weekend Pedestrian Zone</h3>
+      <p class="poll-desc">Do you support making Commercial Street a pedestrian-only zone on weekends?</p>
+      
+      <div class="poll-options">
+        <label class="poll-option" onclick="selectOption(this)">
+          <div class="poll-bg-fill" data-percent="68%"></div>
+          <input type="radio" name="poll2" value="Yes">
+          <span class="poll-option-text">Yes, strongly support</span>
+          <span class="poll-option-percent">68%</span>
+        </label>
+        <label class="poll-option" onclick="selectOption(this)">
+          <div class="poll-bg-fill" data-percent="20%"></div>
+          <input type="radio" name="poll2" value="No">
+          <span class="poll-option-text">No, keep it open for traffic</span>
+          <span class="poll-option-percent">20%</span>
+        </label>
+        <label class="poll-option" onclick="selectOption(this)">
+          <div class="poll-bg-fill" data-percent="12%"></div>
+          <input type="radio" name="poll2" value="Neutral">
+          <span class="poll-option-text">Neutral / Need more info</span>
+          <span class="poll-option-percent">12%</span>
+        </label>
+      </div>
+      
+      <div class="poll-actions">
+        <button class="btn btn-primary" onclick="submitPoll('poll-2')">Vote Now</button>
+      </div>
+    </div>
+  </div>
+
+    <script>
+    Auth.requireAuth("citizen");
+    
+    async function loadPolls() {
+      try {
+        const res = await fetch("/api/features/polls", { headers: Auth.getAuthHeaders() });
+        const data = await res.json();
+        renderPolls(data.polls || []);
+      } catch (err) {
+        document.querySelector('.polls-container').innerHTML += '<div class="text-center p-3 text-secondary">Error loading polls.</div>';
+      }
+    }
+
+    function renderPolls(polls) {
+      const container = document.querySelector('.polls-container');
+      const cards = container.querySelectorAll('.poll-card');
+      cards.forEach(c => c.remove()); // remove static mocks
+
+      if (polls.length === 0) {
+        container.innerHTML += '<div class="text-center p-3 text-secondary">No active polls right now.</div>';
+        return;
+      }
+
+      polls.forEach(poll => {
+        const div = document.createElement('div');
+        div.className = 'poll-card';
+        div.id = poll.id;
+        
+        let totalVotes = poll.options.reduce((sum, opt) => sum + opt.votes, 0);
+        if (totalVotes === 0) totalVotes = 1; // avoid division by zero
+
+        let optionsHtml = poll.options.map((opt, idx) => {
+          const pct = Math.round((opt.votes / totalVotes) * 100);
+          return `
+            <label class="poll-option" onclick="selectOption(this)">
+              <div class="poll-bg-fill" data-percent="${pct}%"></div>
+              <input type="radio" name="${poll.id}" value="${idx}">
+              <span class="poll-option-text">${opt.text}</span>
+              <span class="poll-option-percent">${pct}%</span>
+            </label>
+          `;
+        }).join('');
+
+        div.innerHTML = `
+          <h3 class="poll-title">${poll.title}</h3>
+          <p class="poll-desc">${poll.description}</p>
+          <div class="poll-options">${optionsHtml}</div>
+          <div class="poll-actions">
+            <button class="btn btn-primary" onclick="submitPoll('${poll.id}')">Vote Now</button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function selectOption(label) {
+      const pollCard = label.closest('.poll-card');
+      const options = pollCard.querySelectorAll('.poll-option');
+      options.forEach(opt => opt.style.borderColor = 'var(--border)');
+      label.style.borderColor = 'var(--accent)';
+    }
+
+    async function submitPoll(pollId) {
+      const pollCard = document.getElementById(pollId);
+      const selected = pollCard.querySelector('input[type="radio"]:checked');
+      
+      if (!selected) {
+        alert("Please select an option before voting.");
+        return;
+      }
+      
+      await fetch(`/api/features/polls/${pollId}/vote`, {
+        method: "POST",
+        headers: { ...Auth.getAuthHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ optionIndex: Number(selected.value) })
+      });
+
+      // Reveal results locally
+      const options = pollCard.querySelectorAll('.poll-option');
+      options.forEach(opt => {
+        const bgFill = opt.querySelector('.poll-bg-fill');
+        const percent = opt.querySelector('.poll-option-percent');
+        
+        bgFill.style.width = bgFill.getAttribute('data-percent');
+        percent.style.display = 'block';
+        
+        // Disable further clicking
+        opt.style.pointerEvents = 'none';
+      });
+      
+      const btn = pollCard.querySelector('.btn-primary');
+      btn.textContent = 'Voted';
+      btn.disabled = true;
+      btn.style.background = 'var(--text-secondary)';
+      
+      alert("Thank you for your vote! Your opinion matters.");
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPolls);
+  </script>
+</body>
+</html>

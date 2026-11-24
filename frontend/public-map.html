@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Public Complaint Map — City Transparency</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <style>
+    #publicMap { height: calc(100vh - 64px); width: 100%; }
+    .map-toolbar { position:absolute; top:74px; left:10px; z-index:9999; display:flex; flex-direction:column; gap:.4rem; }
+    .toolbar-btn { background:#fff; border:1px solid rgba(0,0,0,.2); border-radius:6px; padding:.4rem .8rem; font-size:.8rem; cursor:pointer; font-weight:600; box-shadow:0 1px 4px rgba(0,0,0,.2); white-space:nowrap; }
+    .toolbar-btn.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+    .legend { position:absolute; bottom:30px; right:10px; z-index:1000; background:rgba(255,255,255,.97); border:1px solid #e5e7eb; padding:15px; border-radius:12px; min-width:160px; box-shadow:0 4px 12px rgba(0,0,0,.1); }
+    .legend-item { display:flex; align-items:center; gap:8px; font-size:.85rem; margin-bottom:5px; }
+    .dot { width:12px; height:12px; border-radius:50%; }
+    #fullscreenBtn { position:absolute; top:74px; right:10px; z-index:9999; background:#fff; border:2px solid rgba(0,0,0,.2); border-radius:4px; padding:6px 10px; cursor:pointer; font-weight:bold; box-shadow:0 1px 5px rgba(0,0,0,.4); }
+    .fixed-fullscreen { position:fixed !important; top:0 !important; left:0 !important; width:100vw !important; height:100vh !important; z-index:9999 !important; }
+    .photo-popup img { width:200px; height:130px; object-fit:cover; border-radius:6px; margin-top:8px; display:block; }
+    
+    /* Smooth animations for markers */
+    .leaflet-marker-icon, .leaflet-circle-marker { transition: all 0.4s ease-out; animation: fadeIn 0.6s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+    
+    .hotspot-pulse { animation: pulseWarning 2s infinite; border-radius:50%; box-shadow: 0 0 15px #ef4444; }
+    @keyframes pulseWarning { 0% { transform: scale(0.9); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 0.4; } 100% { transform: scale(0.9); opacity: 0.8; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <span class="nav-icon"><img src="/pho/logo.jpeg" style="width:40px;height:40px;object-fit:contain;"></span>
+        <span>FixMyCity <span>Public Map</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/transparency.html">Transparency Dashboard</a>
+        <a href="/citizen/portal">Citizen Portal </a>
+      </div>
+    </div>
+  </nav>
+
+  <div id="mapContainer" style="position:relative;">
+    <div id="publicMap"></div>
+
+    <div class="map-toolbar">
+      <button id="btnMarkers" class="toolbar-btn active" onclick="toggleLayer('markers')">📍 Complaints</button>
+      <button id="btnHeat" class="toolbar-btn" onclick="toggleLayer('heat')">🔥 Heatmap</button>
+      <button id="btnWard" class="toolbar-btn" onclick="toggleLayer('ward')">🗺️ Ward Zones</button>
+      <button id="btnPhotos" class="toolbar-btn" onclick="toggleLayer('photos')">📷 Photo Gallery</button>
+      <button id="btnRedzones" class="toolbar-btn" onclick="toggleLayer('redzones')">🔴 Red Zones</button>
+      <button id="btnPrediction" class="toolbar-btn" onclick="toggleLayer('prediction')" style="background: linear-gradient(90deg, #8b5cf6, #ec4899); color: white; border:none;">🤖 AI Prediction</button>
+      <button id="btnMonthly" class="toolbar-btn" onclick="toggleLayer('monthly')">📅 Monthly View</button>
+    </div>
+
+    <button id="fullscreenBtn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+  </div>
+
+  <div class="legend">
+    <div style="font-weight:700; margin-bottom:8px; font-size:.9rem;">Legend</div>
+    <div class="legend-item"><span class="dot" style="background:#ef4444"></span> Pending</div>
+    <div class="legend-item"><span class="dot" style="background:#3b82f6"></span> In Progress</div>
+    <div class="legend-item"><span class="dot" style="background:#10b981"></span> Resolved</div>
+    <div class="legend-item" style="margin-top:8px; font-size:.75rem; color:#6b7280">Total: <span id="totalMarkers" style="color:#3b82f6;font-weight:700">0</span></div>
+  </div>
+
+  <script src="/shared/escape.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script>
+    let map, markersLayer, heatLayer, wardLayer, photosLayer, redzoneLayer, predictionLayer;
+    let allComplaints = [];
+    const defaultCoords = [12.9716, 77.5946]; // Bengaluru
+
+    function initMap() {
+      map = L.map('publicMap').setView(defaultCoords, 12);
+      L.maplibreGL({
+        style: 'https://tiles.openfreemap.org/styles/liberty'
+      }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+      photosLayer  = L.layerGroup();
+      wardLayer    = buildWardLayer();
+      heatLayer    = null;
+      loadMarkers();
+    }
+
+    function buildWardLayer() {
+      const wards = [
+        { name:'Central Ward (MG Road)', coords:[[12.985,77.585],[12.985,77.615],[12.960,77.615],[12.960,77.585]], color:'#3b82f6' },
+        { name:'North Ward (Hebbal)',     coords:[[13.035,77.570],[13.035,77.610],[12.995,77.610],[12.995,77.570]], color:'#10b981' },
+        { name:'South Ward (Koramangala)', coords:[[12.945,77.580],[12.945,77.630],[12.910,77.630],[12.910,77.580]], color:'#f59e0b' },
+        { name:'East Sector (Indiranagar)', coords:[[12.990,77.635],[12.990,77.720],[12.945,77.720],[12.945,77.635]], color:'#8b5cf6' },
+        { name:'West Zone (Rajajinagar)', coords:[[12.995,77.525],[12.995,77.570],[12.950,77.570],[12.950,77.525]], color:'#ef4444' },
+      ];
+      const lg = L.layerGroup();
+      wards.forEach(w => {
+        L.polygon(w.coords, { color:w.color, fillOpacity:0.08, weight:2, dashArray:'6,4' })
+          .bindPopup(`<strong style="color:${w.color}">${w.name}</strong>`)
+          .addTo(lg);
+        const center = [
+          (w.coords[0][0]+w.coords[2][0])/2,
+          (w.coords[0][1]+w.coords[2][1])/2
+        ];
+        L.marker(center, { icon: L.divIcon({ html:`<div style="background:${w.color};color:#fff;border-radius:4px;padding:2px 6px;font-size:.75rem;font-weight:700;white-space:nowrap">${w.name}</div>`, iconAnchor:[40,10] }) }).addTo(lg);
+      });
+      return lg;
+    }
+
+    async function loadMarkers() {
+      try {
+        const res = await fetch('/api/complaints/public/map');
+        const { complaints } = await res.json();
+        allComplaints = complaints;
+        document.getElementById('totalMarkers').textContent = complaints.length;
+
+        const heatPoints = [];
+        markersLayer.clearLayers();
+        photosLayer.clearLayers();
+        redzoneLayer = L.layerGroup();
+        predictionLayer = L.layerGroup();
+
+        complaints.forEach(c => {
+          if (!c.lat || !c.lng) return;
+          const color = c.status==='Resolved' ? '#10b981' : c.status==='In Progress' ? '#3b82f6' : '#ef4444';
+          heatPoints.push([c.lat, c.lng, 0.8]);
+
+          const m = L.circleMarker([c.lat, c.lng], { radius:8, fillColor:color, color:'#fff', weight:1.5, fillOpacity:0.85 });
+          m.bindPopup(`<div style="font-family:Inter,sans-serif;min-width:190px">
+            <b style="color:#3b82f6">${esc(c.complaint_id)}</b><br>
+            <b>Status:</b> ${esc(c.status)}<br>
+            <div style="font-size:.85rem;margin:.4rem 0;color:#374151">${esc((c.description||'').substring(0,90))}…</div>
+            ${c.photo_url ? `<img src="${safeUrl(c.photo_url)}" style="width:100%; height:100px; object-fit:cover; border-radius:4px; margin:5px 0;">` : ''}
+            <span style="font-size:.75rem;color:#6b7280">👤 Supports: ${esc(c.support_count||0)}</span><br>
+            <a href="/citizen/login" style="color:#3b82f6;font-size:.75rem;font-weight:700">Support This → </a>
+          </div>`);
+          markersLayer.addLayer(m);
+
+          if (c.photo_url) {
+            const pm = L.marker([c.lat, c.lng], {
+              icon: L.divIcon({ html:'<div style="background:#fff;border-radius:4px;padding:3px;border:2px solid #3b82f6;font-size:1rem">📷</div>', iconSize:[26,26], iconAnchor:[13,13] })
+            });
+            pm.bindPopup(`<div class="photo-popup">
+              <b>${esc(c.complaint_id)}</b> — ${esc(c.status)}
+              <img src="${safeUrl(c.photo_url)}" onerror="this.style.display='none'">
+            </div>`);
+            photosLayer.addLayer(pm);
+          }
+        });
+
+        // Mock Red Zones (Repeated Complaints) - random clusters
+        const center = defaultCoords;
+        L.circle([center[0]+0.02, center[1]-0.02], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 800 })
+         .bindPopup('<b>Red Zone</b><br>High frequency of repeated complaints this month.')
+         .addTo(redzoneLayer);
+        L.circle([center[0]-0.03, center[1]+0.04], { color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.2, radius: 1200 })
+         .bindPopup('<b>Red Zone</b><br>Persistent infrastructure issues detected.')
+         .addTo(redzoneLayer);
+
+        // Mock AI Prediction
+        L.circle([center[0]+0.05, center[1]+0.01], { color: '#ec4899', fillColor: '#8b5cf6', fillOpacity: 0.4, radius: 1500, className: 'hotspot-pulse' })
+         .bindPopup('<b>🤖 AI Prediction: Emerging Hotspot</b><br>85% probability of severe waterlogging in the next 15 days based on weather and previous complaint patterns.')
+         .addTo(predictionLayer);
+
+        if (heatLayer) map.removeLayer(heatLayer);
+        heatLayer = L.heatLayer(heatPoints, { radius:28, blur:18, maxZoom:17, gradient:{ 0.3:'#3b82f6', 0.6:'#f59e0b', 1:'#ef4444' } });
+      } catch(e) { console.error('Map load error', e); }
+    }
+
+    function toggleLayer(name) {
+      document.querySelectorAll('.toolbar-btn').forEach(b => b.classList.remove('active'));
+      const btnId = 'btn' + name.charAt(0).toUpperCase() + name.slice(1);
+      const btn = document.getElementById(btnId);
+      if(btn) btn.classList.add('active');
+
+      [markersLayer, wardLayer, photosLayer, redzoneLayer, predictionLayer].forEach(l => { try { map.removeLayer(l); } catch(e){} });
+      if (heatLayer) { try { map.removeLayer(heatLayer); } catch(e){} }
+
+      if (name === 'markers') markersLayer.addTo(map);
+      else if (name === 'heat' && heatLayer) heatLayer.addTo(map);
+      else if (name === 'ward') { wardLayer.addTo(map); markersLayer.addTo(map); }
+      else if (name === 'photos') photosLayer.addTo(map);
+      else if (name === 'redzones') { redzoneLayer.addTo(map); markersLayer.addTo(map); }
+      else if (name === 'prediction') { predictionLayer.addTo(map); markersLayer.addTo(map); }
+      else if (name === 'monthly') {
+        // Mock Monthly comparison by reducing opacity on some markers
+        markersLayer.addTo(map);
+        markersLayer.eachLayer(layer => {
+          if (Math.random() > 0.5) { layer.setStyle({ opacity: 0.3, fillOpacity: 0.2 }); }
+          else { layer.setStyle({ opacity: 1, fillOpacity: 0.85 }); }
+        });
+      }
+    }
+
+    function toggleFullscreen() {
+      const c = document.getElementById('mapContainer');
+      const m = document.getElementById('publicMap');
+      const isFs = c.classList.toggle('fixed-fullscreen');
+      m.style.height = isFs ? '100vh' : 'calc(100vh - 64px)';
+      setTimeout(() => map.invalidateSize(), 100);
+    }
+
+    document.addEventListener('DOMContentLoaded', initMap);
+  </script>
+</body>
+</html>

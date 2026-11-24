@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Community Funding — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .funding-container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+    .grid-projects { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+    .project-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .project-image { width: 100%; height: 150px; background: var(--border); object-fit: cover; }
+    .project-content { padding: 1.5rem; flex-grow: 1; display: flex; flex-direction: column; }
+    .project-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 0.5rem; }
+    .project-desc { color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.5; flex-grow: 1; }
+    
+    .progress-bar-container { width: 100%; background: var(--bg-primary); border-radius: 9999px; height: 10px; margin-bottom: 0.5rem; overflow: hidden; }
+    .progress-bar { height: 100%; background: var(--accent); border-radius: 9999px; }
+    .funding-stats { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .stats-raised { font-weight: bold; color: var(--text-primary); }
+    .stats-goal { color: var(--text-secondary); }
+    
+    .btn-fund { width: 100%; }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/citizen/portal" class="nav-brand">
+<span class="nav-icon">
+  <img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="width:40px;height:40px;object-fit:contain;">
+</span>        <span><span>FixMyCity</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/citizen/portal">File Complaint</a>
+        <a href="/citizen/my-complaints">My History</a>
+        <a href="/citizen/feed">Neighborhood Feed</a>
+        <a href="/citizen/hub">Civic Hub</a>
+        <a href="/citizen/funding" class="active">Community Funding</a>
+        <a href="/citizen/polls">Polls</a>
+        <a href="/citizen/login" onclick="Auth.logout('/citizen/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="funding-container">
+    <button onclick="window.location.href='/citizen/portal'" class="btn btn-ghost" style="margin-bottom: 1rem; padding: 0.5rem 0;">&larr; Back to Portal</button>
+    <div class="mb-3">
+      <h1>Community Funding</h1>
+      <p class="text-secondary">Crowdsource local improvements. Co-fund civic projects directly with the municipality.</p>
+    </div>
+    <div class="grid-projects" id="projectsGrid"></div>
+  </div>
+
+    <script>
+    Auth.requireAuth("citizen");
+    
+    async function loadFunding() {
+      try {
+        const res = await fetch("/api/features/funding", { headers: Auth.getAuthHeaders() });
+        const data = await res.json();
+        renderFunding(data.projects || []);
+      } catch (err) {
+        document.getElementById('projectsGrid').innerHTML = '<div class="text-center p-3 text-secondary">Error loading projects.</div>';
+      }
+    }
+
+    function renderFunding(projects) {
+      const grid = document.getElementById('projectsGrid');
+      grid.innerHTML = '';
+      if (projects.length === 0) {
+        grid.innerHTML = '<div class="text-center p-3 text-secondary">No active community projects right now.</div>';
+        return;
+      }
+
+      projects.forEach((proj, idx) => {
+        const pct = Math.min(100, Math.round((proj.raised / proj.goal) * 100));
+        const colors = [
+          'linear-gradient(to right, #a8edea, #fed6e3)',
+          'linear-gradient(to right, #e0c3fc, #8ec5fc)',
+          'linear-gradient(to right, #fdfbfb, #ebedee)'
+        ];
+        const bg = colors[idx % colors.length];
+
+        const div = document.createElement('div');
+        div.className = 'project-card';
+        div.innerHTML = `
+          <div class="project-image" style="background: ${bg};"></div>
+          <div class="project-content">
+            <h3 class="project-title">${proj.title}</h3>
+            <p class="project-desc">${proj.description}</p>
+            
+            <div class="progress-bar-container">
+              <div class="progress-bar" style="width: ${pct}%;"></div>
+            </div>
+            <div class="funding-stats">
+              <span class="stats-raised">₹${proj.raised.toLocaleString()} raised</span>
+              <span class="stats-goal">₹${proj.goal.toLocaleString()} goal</span>
+            </div>
+            
+            <button class="btn btn-primary btn-fund" onclick="contribute('${proj.id}')">Contribute Now</button>
+          </div>
+        `;
+        grid.appendChild(div);
+      });
+    }
+
+    async function contribute(projectId) {
+      const amount = prompt("Enter amount to contribute (₹):");
+      if (amount && !isNaN(amount) && Number(amount) > 0) {
+        await fetch(`/api/features/funding/${projectId}/contribute`, {
+          method: "POST",
+          headers: { ...Auth.getAuthHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: Number(amount) })
+        });
+        alert(`Thank you! Processed contribution of ₹${amount}.`);
+        loadFunding();
+      } else if (amount) {
+        alert("Please enter a valid amount.");
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadFunding);
+  </script>
+</body>
+</html>

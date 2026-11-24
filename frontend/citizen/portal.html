@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Citizen Portal — FixMyCity</title>
+  <link rel="stylesheet" href="/shared/style.css" />
+  <link rel="stylesheet" href="portal.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+  <style>
+    .fixed-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 9999 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+  </style>
+  <script src="/shared/auth.js"></script>
+</head>
+
+<body>
+  <nav>
+    <div class="nav-inner">
+      <a href="/citizen/portal" class="nav-brand">
+        <span class="nav-icon">
+          <img src="/pho/logo.jpeg" alt="FixMyCity Logo" style="width:40px;height:40px;object-fit:contain;">
+        </span> <span> <span>FixMyCity</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="/citizen/portal" class="active">File Complaint</a>
+        <a href="/citizen/my-complaints">My History</a>
+        <a href="/citizen/feed">Feed</a>
+        <a href="/public-map.html">Public Map</a>
+        <a href="/citizen/community">Community</a>
+        <a href="/citizen/leaderboard">Leaderboard</a>
+        <div class="lang-selector" style="margin-left: 10px;">
+          <select id="langSelect" class="form-control" style="padding: 4px 10px; font-size: 0.8rem; height: auto;"
+            onchange="changeLanguage(this.value)">
+            <option value="en">English</option>
+            <option value="hi">हिन्दी (Hindi)</option>
+            <option value="te">తెలుగు (Telugu)</option>
+            <option value="kn">ಕನ್ನಡ (Kannada)</option>
+          </select>
+        </div>
+        <a href="/citizen/login" onclick="Auth.logout('/citizen/login', event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="portal-container">
+    <div class="user-bar">
+      <div>
+        Welcome, <span id="userName" class="text-accent font-bold">...</span>
+        <span id="mainUserBadge" class="badge"
+          style="background:#f59e0b; color:#fff; padding:2px 6px; border-radius:12px; font-size:0.75rem; margin-left:10px;"
+          title="Gamification (Feature 4)">⭐ 0 pts | Beginner</span>
+      </div>
+      <div class="text-secondary text-sm">Citizen Portal</div>
+    </div>
+
+    <!-- Citizen Stats -->
+    <div class="grid"
+      style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+      <div class="stat-card" style="padding: 1rem">
+        <div class="stat-label">My Total</div>
+        <div class="stat-value" id="countTotal" style="font-size: 1.5rem">0</div>
+      </div>
+      <div class="stat-card" style="padding: 1rem;">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="countPending" style="font-size: 1.5rem; color: var(--status-pending)">0</div>
+      </div>
+      <div class="stat-card" style="padding: 1rem;">
+        <div class="stat-label">Resolved</div>
+        <div class="stat-value" id="countResolved" style="font-size: 1.5rem; color: var(--status-resolved)">0</div>
+      </div>
+      <div class="stat-card" style="padding: 1rem;">
+        <div class="stat-label">Rejected</div>
+        <div class="stat-value" id="countRejected" style="font-size: 1.5rem; color: var(--status-rejected)">0</div>
+      </div>
+    </div>
+
+    <div class="portal-grid">
+      <!-- Left: Form -->
+      <div class="card">
+        <h2 class="mb-3">File a New Complaint</h2>
+        <form id="complaintForm">
+          <div class="form-group">
+            <label class="form-label">
+              Complaint Description
+            </label>
+            <textarea id="description" class="form-control" placeholder="Describe the issue in detail..."
+              oninput="onDescriptionInput()" required></textarea>
+            <span id="sentimentChip"
+              style="display:none; margin-top:5px; font-size:0.75rem; padding:2px 8px; border-radius:12px; font-weight:600;"></span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category / Department</label>
+            <select id="categoryHint" class="form-control" required>
+              <option value="">Select Category / Department</option>
+              <option value="Road & Infrastructure Department">Road & Infrastructure Department</option>
+              <option value="Water Supply Department">Water Supply Department</option>
+              <option value="Electricity Department">Electricity Department</option>
+              <option value="Sanitation & Waste Management">Sanitation & Waste Management</option>
+              <option value="Public Health Department">Public Health Department</option>
+              <option value="Transport Department">Transport Department</option>
+              <option value="Municipal Services">Municipal Services</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Zone</label>
+            <select id="zone" class="form-control">
+              <option value="Central">Central</option>
+              <option value="North">North</option>
+              <option value="South">South</option>
+              <option value="East">East</option>
+              <option value="West">West</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Attach Photo/Video (AI identifies location via GPS if
+              available)</label>
+            <div class="upload-area" id="dropZone">
+              <span id="uploadHint">Click or Drag Media Here<br /><small>Supports JPG, PNG, WEBP, MP4 (Max 5MB) -
+                  Feature 3</small></span>
+              <div class="upload-preview" id="previewBox">
+                <img id="previewImg" src="" />
+                <button type="button" class="remove-photo" onclick="clearPhoto(event)">
+                  X
+                </button>
+              </div>
+            </div>
+            <input type="file" id="photoInput" accept="image/*,video/mp4" multiple style="display: none" />
+          </div>
+
+          <div class="form-group"
+            style="background:#fef2f2; border:1px solid #ef4444; padding:15px; border-radius:8px; margin-top:15px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+              <label class="form-label"
+                style="color:#b91c1c; margin:0; font-weight: 800; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.4rem; animation: pulse 1.5s infinite;">🚨</span> Emergency Report
+              </label>
+              <label class="switch" style="position:relative; display:inline-block; width:40px; height:20px;">
+                <input type="checkbox" id="emergencyToggle" style="opacity:0; width:0; height:0;">
+                <span
+                  style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background-color:#ccc; border-radius:34px; transition:.4s;"></span>
+              </label>
+            </div>
+            <p style="font-size:0.8rem; color:#991b1b; margin-bottom:10px;">Auto-priority and instant alerts to rapid
+              response teams.</p>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="button" onclick="setEmergency('Fallen Electric Wire', 'Electricity Department')"
+                style="background:#fee2e2; border:1px solid #f87171; color:#b91c1c; padding:6px 12px; border-radius:20px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;">⚡
+                Fallen Wire</button>
+              <button type="button" onclick="setEmergency('Severe Flooding', 'Water Supply Department')"
+                style="background:#e0f2fe; border:1px solid #38bdf8; color:#0369a1; padding:6px 12px; border-radius:20px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;">🌊
+                Flooding</button>
+              <button type="button" onclick="setEmergency('Major Road Accident', 'Road & Infrastructure Department')"
+                style="background:#fef3c7; border:1px solid #fbbf24; color:#b45309; padding:6px 12px; border-radius:20px; font-size:0.85rem; font-weight:600; cursor:pointer; transition:all 0.2s;">💥
+                Accident</button>
+            </div>
+          </div>
+          <style>
+            @keyframes pulse {
+              0% {
+                transform: scale(1);
+              }
+
+              50% {
+                transform: scale(1.15);
+              }
+
+              100% {
+                transform: scale(1);
+              }
+            }
+          </style>
+
+          <button type="submit" class="btn btn-primary w-full mt-3" id="submitBtn">
+            Submit Grievance
+          </button>
+        </form>
+      </div>
+
+      <!-- Right: Location -->
+      <div class="card">
+        <h3 style="font-size: 1.1rem"> Location Details</h3>
+        <p class="text-secondary text-sm mt-1 mb-3">
+          If your photo has GPS tags, the pin will move automatically. You can
+          also search for a location, drag the pin, or click the map manually.
+        </p>
+
+        <div class="map-search">
+          <input type="text" id="mapSearchInput" class="form-control"
+            placeholder="Search area or landmark (e.g. Indiranagar, Majestic)..."
+            onkeydown="if(event.key==='Enter'){event.preventDefault();searchMapLocation();}">
+          <div class="map-search-actions">
+            <button type="button" class="btn btn-secondary" onclick="searchMapLocation()">🔍 Search</button>
+            <button type="button" class="btn btn-primary" onclick="useCurrentLocation()"
+              title="Use my current GPS location">📍 Use GPS</button>
+          </div>
+        </div>
+
+        <div id="mapContainer" class="map-container-rel" style="position: relative;">
+          <div id="map" style="height: 300px;"></div>
+          <div id="mapPinInstruction" class="map-floating-hint" style="display:none;">📍 Click anywhere on map to pin
+            location</div>
+          <button type="button" id="fullscreenBtn" onclick="toggleFullscreen()" class="map-control-btn fullscreen-btn"
+            title="Open Fullscreen Map">⛶ Fullscreen</button>
+          <button type="button" id="minimizeBtn" onclick="toggleFullscreen()" class="map-control-btn minimize-btn"
+            title="Exit Fullscreen" style="display:none;">🗗 Minimize</button>
+        </div>
+        <input type="hidden" id="lat" />
+        <input type="hidden" id="lng" />
+
+        <div class="form-group mt-3">
+          <label class="form-label">Landmark / Address (Optional)</label>
+          <input type="text" id="locationText" class="form-control" placeholder="e.g. Near Metro Pillar 45" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+    <script src="/shared/escape.js"></script>
+  <script src="/shared/i18n.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/dist/leaflet-maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+  <script src="portal.js"></script>
+
+  <!-- Duplicate Warning Modal -->
+  <div id="duplicateModal"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center; padding:1.5rem;">
+    <div class="card" style="width:100%; max-width:500px; border-top: 4px solid var(--accent)">
+      <h2 style="color:var(--accent); font-size:1.4rem" class="mb-3">Similar Complaint Nearby</h2>
+      <p class="text-secondary mb-3">Another citizen has already reported a similar issue in this area. Would you like
+        to support their complaint instead of creating a new one?</p>
+
+      <div
+        style="background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:15px; margin-bottom:20px;">
+        <div class="text-accent font-bold mb-2" id="duplicateId">FMC-XXXX</div>
+        <div id="duplicateDesc" class="text-sm">Complaint description goes here...</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <button class="btn btn-primary" onclick="supportExisting()">Support This Complaint instead</button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-secondary flex-1" onclick="submitGrievance()">File Anyway</button>
+          <button class="btn btn-ghost" style="border:none" onclick="closeDuplicateModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,83 @@
+# FixMyCity (Municipal Grievance System) - Detailed Project Analysis
+
+## Overview & Purpose
+FixMyCity is a comprehensive, production-ready municipal management and citizen grievance portal. The platform empowers citizens to report urban issues (e.g., potholes, water leaks, sanitation problems) while providing government authorities (Admins/Officers) with a powerful command center to track, assign, and resolve these issues efficiently. 
+
+It is designed with an "official government portal" aesthetic (incorporating national emblems and multilingual support) and operates on a highly portable, offline-capable architecture.
+
+---
+
+## Detailed Technical Architecture & Stack Justification
+
+### 1. Frontend Technologies
+- **HTML5 & Vanilla CSS (`frontend/**/*.html`, `index.css`, `style.css`)**
+  - **Why:** Keeps the platform lightweight, universally accessible, and fast-loading. Avoids the overhead of large frameworks. Custom CSS allows strict adherence to government design guidelines (clean, authoritative, responsive).
+- **Vanilla JavaScript (ES6+)**
+  - **Why:** Handles DOM manipulation, client-side routing, and REST API communication (`fetch`) natively. It ensures maximum browser compatibility and simple maintenance.
+- **External Libraries**
+  - **Leaflet.js:** Used in `public-map.html` and `admin/map.html` for interactive, tile-based geographical mapping of geotagged complaints.
+  - **Chart.js:** Used in `admin/analytics.html` to visualize municipal performance metrics (pie charts for categories, bar charts for resolution rates).
+
+### 2. Backend Technologies
+- **Node.js runtime & Express.js Framework (`backend/index.js`)**
+  - **Why:** Provides a fast, event-driven server environment. Express simplifies routing, middleware integration (CORS, JSON parsing), and static file serving.
+- **SQLite Database (`backend/db.js`, `sqlite3`)**
+  - **Why:** A file-based, serverless SQL database. It is deliberately chosen to make the system fully offline-capable, portable, and easy to deploy locally without configuring a separate database server (like PostgreSQL or MySQL).
+- **Authentication & Security (`jsonwebtoken`, `bcryptjs`)**
+  - **Why:** `bcryptjs` securely hashes admin passwords before storing them. `jsonwebtoken` (JWT) is used for stateless authentication—once a citizen or officer logs in, a token is stored in their browser to authorize subsequent API requests.
+- **File & Data Processing**
+  - **multer:** Middleware for handling `multipart/form-data`, primarily used for uploading photos of grievances.
+  - **exifr:** Extracts EXIF data (specifically GPS coordinates) from uploaded images if the citizen hasn't manually pinned a location.
+  - **nodemailer:** Handles automated email dispatch (e.g., notifying officers of high-priority escalations or citizens of resolution).
+
+---
+
+## Deep Dive into File Structure & Workflows
+
+### 1. The Backend Core (`backend/`)
+- **`index.js` (The Entry Point):** 
+  - Initializes the Express app.
+  - Mounts API routes (`/api/auth`, `/api/complaints`, `/api/features`).
+  - Serves the static `frontend/` directory.
+  - Sets up a `setInterval` background worker that runs every 60 seconds to automatically escalate overdue complaints (`db.escalateComplaints()`).
+- **`db.js` (The Data Access Layer):**
+  - Creates necessary tables (`citizens`, `admins`, `complaints`).
+  - Contains all SQL queries. Notable functions include `findDuplicateComplaints` (which uses the Haversine formula to detect if a similar issue was reported within a 0.5km radius) and `getStats` (aggregating data for the admin dashboard).
+- **`routes/auth.js`:** 
+  - Manages Aadhaar-linked citizen registration/login and Admin credentials validation.
+- **`routes/complaints.js`:** 
+  - The core API. Handles POST requests to create grievances (processing image uploads via Multer), GET requests to list them (with advanced filtering for admins), and PUT requests to update status/assign officers.
+- **`routes/features.js`:** 
+  - Handles gamification and community modules (Leaderboards, Polls).
+
+### 2. The Citizen Interface (`frontend/citizen/`)
+- **`login.html` / `register.html`:** The entry gate. Simulates an Aadhaar-linked OTP login system to ensure verified citizen reporting.
+- **`portal.html` & `portal.js`:** The main grievance submission form. It captures the category, description, and uses the HTML5 Geolocation API (or manual map clicking) to attach precise Lat/Lng coordinates alongside photo evidence.
+- **`my-complaints.html`:** A personalized dashboard where citizens can track the status of their reports (Pending -> In Progress -> Resolved). Once resolved, they can submit a star rating and feedback comment.
+- **`community.html`, `leaderboard.html`, `polls.html`:** Advanced civic engagement features. Citizens can view which wards are performing best, participate in civic polls, and view community-funded projects.
+
+### 3. The Admin & Officer Interface (`frontend/admin/`)
+- **`login.html`:** Secure login for municipal staff.
+- **`dashboard.html` & `dashboard.js`:** The primary workspace. It fetches all complaints and displays them in a data table. Admins can assign complaints to specific department officers, change statuses, and view timelines.
+- **`map.html`:** A spatial view for officers to see clusters of issues, helping them route field repair trucks efficiently.
+- **`analytics.html`:** Real-time metrics showing departmental performance, average resolution times, and grievance heatmaps to assist in policy making and resource allocation.
+- **`mobile.html`:** A responsive view tailored for field officers (e.g., a pothole repair crew) to quickly tap and update a status to "Resolved" from their mobile devices while on-site.
+
+### 4. Shared Utilities (`frontend/shared/`)
+- **`i18n.js`:** A client-side internationalization script. It stores translations in a dictionary and replaces DOM elements bearing `data-i18n` attributes, allowing the portal to seamlessly switch between English, Hindi, Telugu, and Kannada.
+- **`chatbot.js`:** An interactive floating widget offering automated guidance on how to use the portal.
+
+---
+
+## Future Roadmap & Expansion Plans
+
+1. **AI-Powered Auto-Categorization & Routing:**
+   - Integrate an LLM (Large Language Model) or Vision model to analyze uploaded photos and text descriptions to automatically determine the exact department (Water, Roads, Sanitation) and severity level, bypassing manual admin triage.
+2. **Real-time WebSockets:**
+   - Implement `Socket.io` to replace HTTP polling. This will provide instant, live notifications to citizens the second an officer updates their complaint status.
+3. **Official API Integrations (Gov API Setu):**
+   - Connect to the actual UIDAI/Aadhaar API for genuine identity verification and DigiLocker for document fetching.
+4. **Predictive Maintenance Module:**
+   - Use historical complaint data and Machine Learning to predict infrastructure failures (e.g., predicting pipe bursts in winter based on past data) before citizens even report them.
+5. **Native Mobile App Deployment:**
+   - Wrap the frontend in Cordova/Capacitor or rewrite the views in React Native to leverage native mobile features like offline-first caching and push notifications.

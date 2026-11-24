@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Ward Leaderboard | FixMyCity Official</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <style>
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      margin-top: 2rem;
+    }
+    .leaderboard-table th {
+      background: var(--gov-blue);
+      color: white;
+      text-align: left;
+      padding: 1rem;
+      font-weight: 700;
+    }
+    .leaderboard-table td {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .rank-cell { width: 60px; font-weight: 800; color: var(--text-secondary); }
+    .score-bar {
+      height: 8px;
+      background: #E5E7EB;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .score-fill {
+      height: 100%;
+      background: var(--gov-green);
+    }
+    .top-rank { background: #FFFBEB; }
+    .medal { font-size: 1.2rem; }
+  </style>
+</head>
+<body>
+  <div class="gov-banner">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem">
+    <span>GOVERNMENT OF INDIA | MUNICIPAL ADMINISTRATION DEPARTMENT</span>
+  </div>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <img src="/pho/logo.jpeg" alt="Logo">
+        <span>FixMyCity</span>
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/public-map.html">Reports</a>
+        <a href="/gallery.html">Fix Gallery</a>
+        <a href="/leaderboard.html" class="active">Smart Ward </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container" style="max-width: 1000px; margin: 0 auto; padding: 3rem 2rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+      <h1 class="hero-subtitle" style="color: var(--gov-blue);">Smart Ward Leaderboard</h1>
+      <p class="text-secondary">Tracking and rewarding administrative efficiency across all municipal zones.</p>
+    </div>
+
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th class="rank-cell">Rank</th>
+          <th>Ward Name / Zone</th>
+          <th>Efficiency Score</th>
+          <th>Resolutions</th>
+          <th>Avg Time</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboardBody">
+        <tr class="top-rank">
+          <td class="rank-cell"><span class="medal">🥇</span> 1</td>
+          <td><strong>Central Zone</strong></td>
+          <td>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+              <span>98%</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width: 98%;"></div></div>
+          </td>
+          <td>450</td>
+          <td>1.2 Days</td>
+        </tr>
+        <tr class="top-rank">
+          <td class="rank-cell"><span class="medal">🥈</span> 2</td>
+          <td><strong>North Ward</strong></td>
+          <td>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+              <span>94%</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width: 94%;"></div></div>
+          </td>
+          <td>380</td>
+          <td>1.8 Days</td>
+        </tr>
+        <tr class="top-rank">
+          <td class="rank-cell"><span class="medal">🥉</span> 3</td>
+          <td><strong>East Sector</strong></td>
+          <td>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+              <span>91%</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width: 91%;"></div></div>
+          </td>
+          <td>310</td>
+          <td>2.1 Days</td>
+        </tr>
+        <tr>
+          <td class="rank-cell">4</td>
+          <td>South Ward</td>
+          <td>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+              <span>85%</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width: 85%; background: var(--gov-saffron);"></div></div>
+          </td>
+          <td>290</td>
+          <td>3.5 Days</td>
+        </tr>
+        <tr>
+          <td class="rank-cell">5</td>
+          <td>West Zone</td>
+          <td>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 4px;">
+              <span>78%</span>
+            </div>
+            <div class="score-bar"><div class="score-fill" style="width: 78%; background: var(--status-rejected);"></div></div>
+          </td>
+          <td>210</td>
+          <td>4.2 Days</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top: 3rem; background: #EFF6FF; padding: 2rem; border-radius: 8px; border-left: 4px solid var(--gov-blue);">
+      <h4 style="color: var(--gov-blue); margin-bottom: 10px;">How is this calculated?</h4>
+      <p class="text-sm text-secondary">Scores are updated weekly based on three key metrics: Total grievances resolved, average resolution time, and citizen satisfaction ratings from verified feedback.</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-bottom">
+      <p>&copy; 2026 Municipal Administration Department. All Rights Reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

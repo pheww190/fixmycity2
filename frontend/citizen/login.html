@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Login | FixMyCity Official</title>
+  <link rel="stylesheet" href="/shared/style.css">
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+  <div class="gov-banner">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Emblem of India">
+    <span>GOVERNMENT OF INDIA | MUNICIPAL ADMINISTRATION DEPARTMENT</span>
+  </div>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="nav-brand">
+        <img src="/pho/logo.jpeg" alt="Logo">
+        <span>FixMyCity</span>
+      </a>
+      <div class="nav-links">
+        <a href="/">Home</a>
+        <a href="/public-map.html">Reports </a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="login-page">
+    <div class="login-container">
+      <div class="login-header">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="Seal" style="height: 60px;">
+        <h2>Citizen Secure Login</h2>
+        <p>Verified through Aadhaar Linked Mobile Number</p>
+      </div>
+
+      <!-- Step 1: Aadhaar & Phone -->
+      <form id="otpForm" class="login-form">
+        <div class="form-group">
+          <label class="form-label">Aadhaar Number (12 Digits)</label>
+          <input type="text" id="aadhaar" class="form-control" placeholder="0000 0000 0000" maxlength="14" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mobile Number</label>
+          <div class="phone-input-wrapper">
+            <div class="phone-prefix">
+              <img src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" alt="India">
+              <span>+91</span>
+            </div>
+            <input type="tel" id="phone" class="form-control phone-input" placeholder="XXXXX XXXXX" maxlength="12" required>
+          </div>
+        </div>
+        <button type="submit" id="sendBtn" class="btn btn-primary w-full">Send OTP</button>
+      </form>
+
+      <!-- Step 2: OTP Verification (Hidden initially) -->
+      <form id="verifyForm" class="login-form" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Enter 6-Digit OTP</label>
+          <div class="otp-inputs">
+            <input type="text" id="otp" class="form-control text-center" placeholder="123456" maxlength="6" required>
+          </div>
+        </div>
+        <button type="submit" id="loginBtn" class="btn btn-primary w-full">Verify & Login</button>
+        <button type="button" onclick="resetFlow()" class="btn btn-ghost w-full mt-1">Change Number</button>
+      </form>
+
+      <div class="login-footer">
+        <p>New to FixMyCity? <a href="register.html">Register Aadhaar</a></p>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast"></div>
+
+  <script src="/shared/auth.js"></script>
+  <script src="/shared/escape.js"></script>
+  <script src="login.js"></script>
+</body>
+</html>

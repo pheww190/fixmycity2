@@ -1,0 +1,97 @@
+/* login.css - Professional Centered Login Styling */
+
+.login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 120px);
+  padding: 2rem;
+  background: var(--bg-primary);
+}
+
+.login-container {
+  background: white;
+  width: 100%;
+  max-width: 450px;
+  padding: 3rem 2.5rem;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+  border-top: 4px solid var(--gov-saffron);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.login-header img {
+  margin-bottom: 1.5rem;
+}
+
+.login-header h2 {
+  font-family: 'Outfit', sans-serif;
+  color: var(--gov-blue);
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.login-header p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-label {
+  font-weight: 700;
+  color: var(--gov-blue);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-control {
+  border: 1.5px solid #E5E7EB;
+  padding: 12px 16px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-control:focus {
+  border-color: var(--gov-blue);
+  box-shadow: 0 0 0 4px rgba(0, 51, 102, 0.05);
+}
+
+.otp-inputs input {
+  letter-spacing: 8px;
+  font-weight: 800;
+  font-size: 1.5rem;
+}
+
+.login-footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  border-top: 1px solid #F3F4F6;
+  padding-top: 1.5rem;
+}
+
+.login-footer a {
+  color: var(--gov-blue);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.login-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 2rem 1.5rem;
+  }
+}
